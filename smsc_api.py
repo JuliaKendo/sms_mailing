@@ -72,20 +72,20 @@ async def request_smsc(method, login, password, payload):
     raise SmscApiError(responce.text)
 
 
-async def send_sms(login, password, phones, text_message, queue):
+async def send_sms(login, password, phones, text_message):
 
     dispatch_report = await request_smsc(
         "send", login, password,
         {'phones': ','.join(phones), 'mes': text_message}
     )
-    queue.put_nowait(
-        {'id': dispatch_report['id'], 'phones': phones, 'message': text_message}
-    )
-    await queue.join()
-    #  Проверяем статусы доставки sms
-    #  TODO: в дальнейшем обработать статусы доставки
+    return {'id': dispatch_report['id'], 'phones': phones, 'message': text_message}
+
+
+async def check_sms_delivery(login, password, phones, mailing_id):
+    sms_delivery_report = {}
     for phone in phones:
-        await request_smsc(
+        sms_delivery_report[phone] = await request_smsc(
             "status", login, password,
-            {'phone': phone, 'id': dispatch_report['id']}
+            {'phone': phone, 'id': mailing_id}
         )
+    return sms_delivery_report
